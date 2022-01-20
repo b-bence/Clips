@@ -9,4 +9,7 @@ duration-500 focus:outline-none rounded bg-transparent focus:border-indigo-400" 
     <p *ngIf="control.errors?.email" class="text-red-400">
         You must enter a valid email.
     </p>
+    <p *ngIf="control.errors?.min || control.errors?.max" class="text-red-400">
+        You must enter a valid age between 18 and 120
+    </p>
 </ng-container>
