@@ -12,4 +12,7 @@ duration-500 focus:outline-none rounded bg-transparent focus:border-indigo-400" 
     <p *ngIf="control.errors?.min || control.errors?.max" class="text-red-400">
         You must enter a valid age between 18 and 120
     </p>
+    <p *ngIf="control.errors?.pattern" class="text-red-400">
+        Password must be at least 8 characters long, have 1 uppercase letter, 1 lowercase letter, and 1 number.
+    </p>
 </ng-container>
