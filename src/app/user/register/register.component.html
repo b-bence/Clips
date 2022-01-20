@@ -7,6 +7,11 @@
               duration-500 focus:outline-none rounded bg-transparent focus:border-indigo-400"
         placeholder="Enter Name" minlength="3"/>
     </div>
+    <p *ngIf="registerForm.controls.name.touched && registerForm.controls.name.dirty && registerForm.controls.name.errors?.required" class="text-red-400">Field is required</p>
+    <p *ngIf="registerForm.controls.name.touched && registerForm.controls.name.dirty && registerForm.controls.name.errors?.minlength" class="text-red-400">
+        The value is {{ registerForm.controls.name.errors?.minlength.actualLength }} characters long.
+        The min length is {{ registerForm.controls.name.errors?.minlength.requiredLength }} characters.
+    </p>
     <!-- Email -->
     <div class="mb-3">
       <label class="inline-block mb-2">Email</label>
