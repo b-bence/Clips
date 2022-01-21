@@ -12,9 +12,16 @@ export class LoginComponent implements OnInit {
     password: ""
   }
 
+  showAlert = false
+  alertMsg = 'Please wait! Your are being logged in'
+  alertColor = 'green'
+
   constructor() { }
 
   ngOnInit(): void {
   }
 
+  login(){
+    this.showAlert = true
+  }
 }
