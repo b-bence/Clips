@@ -4,4 +4,10 @@ module.exports = {
     extend: {},
   },
   plugins: [],
+  variants:{
+    extend:{
+      opacity: ['disabled'],
+      backgroundColor: ['disabled']
+    }
+  }
 }
