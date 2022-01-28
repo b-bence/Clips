@@ -3,8 +3,7 @@ import { Component, OnInit } from '@angular/core';
 // Allows us to register a new form -> container for our forms. It helps to isolate one from another. 
 // Just like in the case of tab and tab-container components
 import { FormGroup, FormControl, Validators} from '@angular/forms';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -14,8 +13,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 export class RegisterComponent {
 
   constructor(
-    private auth: AngularFireAuth,
-    private db: AngularFirestore
+    private auth: AuthService
     ) {}
 
   inSubmission = false
@@ -59,20 +57,11 @@ export class RegisterComponent {
      this.alertMsg = "Please wait! Your account is being created"
      this.alertColor = 'blue'
 
-     const { email, password } = this.registerForm.value
+
 
      try{
-      const userCred = await this.auth.createUserWithEmailAndPassword(
-        email, password
-       )
+      await this.auth.createUser(this.registerForm.value)
 
-       await this.db.collection('users').add({
-         name: this.name.value,
-         email: this.email.value,
-         age: this.age.value,
-         phoneNumber: this.phoneNumber.value
-       })
-       
      } catch(e){
        console.error(e)
 
