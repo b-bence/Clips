@@ -1,20 +1,30 @@
-import { ValidationErrors, AbstractControl } from "@angular/forms";
+import { ValidationErrors, AbstractControl, ValidatorFn } from "@angular/forms";
 
 export class RegisterValidators {
 
-static match(group: AbstractControl): ValidationErrors | null{
-    const control = group.get('password')
-    const matchingControl = group.get('confirmPassword')
+// ValidatorFn:
+// Angular exports an interface for factory functions that return a validator
+static match(controlName: string, matchingControlName: string): ValidatorFn {
 
-    if (!control || !matchingControl){
-        return { controlNotFound: false}
+    return (group: AbstractControl): ValidationErrors | null => {
+        const control = group.get(controlName)
+        const matchingControl = group.get(matchingControlName)
+    
+        if (!control || !matchingControl){
+            console.error('Form controls cannot be found in the form group')
+            return { controlNotFound: false}
+        }
+    
+        const error = control.value === matchingControl.value? 
+            null:
+            { noMatch: true }
+
+        // This makes us responsible for handling the error. Angular will not remove the error automatically if we add it
+        matchingControl.setErrors(error)
+    
+        return error
     }
-
-    const error = control.value === matchingControl.value? 
-        null:
-        { noMatch: true }
-
-    return error
+    
 }
 
 }

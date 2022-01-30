@@ -19,4 +19,7 @@ duration-500 focus:outline-none rounded bg-transparent focus:border-indigo-400" 
     <p *ngIf="control.errors?.phoneNumber" class="text-red-400">
         Enter a valid Phone Number!
     </p>
+    <p *ngIf="control.errors?.noMatch" class="text-red-400">
+        Passwords do not match!
+    </p>
 </ng-container>

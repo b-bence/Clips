@@ -51,7 +51,7 @@ export class RegisterComponent {
     confirmPassword: this.confirmPassword,
     phoneNumber: this.phoneNumber
     // Angular will invoke this function with the form group
-   }, [RegisterValidators.match])
+   }, [RegisterValidators.match('password', 'confirmPassword')])
 
    async register(){
      this.inSubmission = true
