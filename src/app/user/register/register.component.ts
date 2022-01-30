@@ -4,6 +4,7 @@ import { Component, OnInit } from '@angular/core';
 // Just like in the case of tab and tab-container components
 import { FormGroup, FormControl, Validators} from '@angular/forms';
 import { AuthService } from 'src/app/services/auth.service';
+import { RegisterValidators } from '../validators/register-validators';
 
 @Component({
   selector: 'app-register',
@@ -49,7 +50,8 @@ export class RegisterComponent {
     password: this.password,
     confirmPassword: this.confirmPassword,
     phoneNumber: this.phoneNumber
-   })
+    // Angular will invoke this function with the form group
+   }, [RegisterValidators.match])
 
    async register(){
      this.inSubmission = true
