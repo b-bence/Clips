@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 // Allows us to register a new form -> container for our forms. It helps to isolate one from another. 
 // Just like in the case of tab and tab-container components
 import { FormGroup, FormControl, Validators} from '@angular/forms';
-import { bufferToggle } from 'rxjs';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -11,6 +11,13 @@ import { bufferToggle } from 'rxjs';
   styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
+
+  constructor(
+    private auth: AuthService
+    ) {}
+
+  inSubmission = false
+
   name = new FormControl('',[
     Validators.required,
     Validators.minLength(3)
@@ -44,10 +51,29 @@ export class RegisterComponent {
     phoneNumber: this.phoneNumber
    })
 
-   register(){
+   async register(){
+     this.inSubmission = true
      this.showAlert = true
      this.alertMsg = "Please wait! Your account is being created"
      this.alertColor = 'blue'
+
+
+
+     try{
+      await this.auth.createUser(this.registerForm.value)
+
+     } catch(e){
+       console.error(e)
+
+       this.alertMsg = "An unexpected color occured. Please try again!"
+       this.alertColor = 'red'
+       this.inSubmission = false
+       return
+     }
+
+     this.alertMsg = "Success! Your account has been created."
+     this.alertColor = 'green'
+
    }
 
    showAlert = false
