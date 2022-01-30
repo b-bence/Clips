@@ -4,6 +4,8 @@ import { Component, OnInit } from '@angular/core';
 // Just like in the case of tab and tab-container components
 import { FormGroup, FormControl, Validators} from '@angular/forms';
 import { AuthService } from 'src/app/services/auth.service';
+import { RegisterValidators } from '../validators/register-validators';
+import { EmailTaken } from '../validators/email-taken';
 
 @Component({
   selector: 'app-register',
@@ -13,7 +15,8 @@ import { AuthService } from 'src/app/services/auth.service';
 export class RegisterComponent {
 
   constructor(
-    private auth: AuthService
+    private auth: AuthService,
+    private emailTaken: EmailTaken
     ) {}
 
   inSubmission = false
@@ -22,10 +25,11 @@ export class RegisterComponent {
     Validators.required,
     Validators.minLength(3)
   ])
+  // Second argument is for synchronous validators, third one is for asynchronous
   email = new FormControl('',[
     Validators.required,
     Validators.email
-  ])
+  ],[this.emailTaken.validate])
   age = new FormControl('',[
     Validators.required,
     Validators.min(18),
@@ -49,7 +53,8 @@ export class RegisterComponent {
     password: this.password,
     confirmPassword: this.confirmPassword,
     phoneNumber: this.phoneNumber
-   })
+    // Angular will invoke this function with the form group
+   }, [RegisterValidators.match('password', 'confirmPassword')])
 
    async register(){
      this.inSubmission = true
