@@ -16,7 +16,11 @@ const routes: Routes = [
     data:{
       authOnly: true
     }
+  },{
+    path:'manage-clips',
+    redirectTo: 'manage'
   }
+  
 ];
 
 @NgModule({
