@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 // Inject one of AngularFireStorageModule's services to upload a file
 import { AngularFireStorage } from '@angular/fire/compat/storage';
 import { v4 as uuid } from 'uuid'
+import { last } from 'rxjs/operators';
 
 @Component({
   selector: 'app-upload',
@@ -13,6 +14,13 @@ export class UploadComponent implements OnInit {
   isDragover = false
   file: File | null = null
   showUploadForm = false
+
+  showAlert = false
+  alertMsg = 'Please wait! Your file is being uploaded'
+  alertColor = 'blue'
+  inSubmission = false
+  percentage = 0
+  showPercentage = false
 
   title = new FormControl('',[
     Validators.required,
@@ -56,12 +64,46 @@ export class UploadComponent implements OnInit {
     this.showUploadForm = true
   }
 
-  uploadFile(){
+    uploadFile(){
     const clipFileName = uuid()
     const clipPath = `clips/${clipFileName}.mp4`
 
-    this.storage.upload(clipPath,this.file)
+    // Reset the values in case the user re submits the content
+    this.alertMsg = 'Please wait! Your file is being uploaded'
+    this.alertColor = 'blue'
 
+    this.showAlert = true
+    this.inSubmission = true
+    this.showPercentage = true
+    
+      const task = this.storage.upload(clipPath,this.file)
+
+      task.percentageChanges().subscribe(progress => {
+        this.percentage = progress as number / 100
+      })
+
+      task.snapshotChanges().pipe(
+        // Ignore values pushed by the observable. 
+        // The snaposhotChanges sends an observable on percentage changes and also when the upload is complete, which is the last
+        //We can set it so that no value will be pushed until the upload is finished
+        last()
+      ).subscribe({
+        // Define as arrow function to prevent the context from changing
+        // The components properties won't be accessible unless we use an arrow function
+        next: (snapshop) =>{
+          this.alertColor = "green"
+          this.alertMsg = " Your file was uploaded!"
+          this.showPercentage = false
+        },
+        error: (error) => {
+          this.showAlert = true;
+          this.alertMsg = "Uplad failed! Please try again!"
+          this.alertColor = "red"
+          this.showPercentage = false
+          this.inSubmission = false
+          console.error(error);
+        }
+      })
   }
 
 }
