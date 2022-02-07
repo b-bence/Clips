@@ -76,67 +76,72 @@ export class UploadComponent implements OnInit {
   }
 
     uploadFile(){
-    const clipFileName = uuid()
-    const clipPath = `clips/${clipFileName}.mp4`
+      const clipFileName = uuid()
+      const clipPath = `clips/${clipFileName}.mp4`
 
-    // Reset the values in case the user re submits the content
-    this.alertMsg = 'Please wait! Your file is being uploaded'
-    this.alertColor = 'blue'
+      // Preventing users from editing forms during upload
+      // Alternative to binding the disabled attribute
+      this.uploadForm.disable()
 
-    this.showAlert = true
-    this.inSubmission = true
-    this.showPercentage = true
-    
-      const task = this.storage.upload(clipPath,this.file)
+      // Reset the values in case the user re submits the content
+      this.alertMsg = 'Please wait! Your file is being uploaded'
+      this.alertColor = 'blue'
 
-      // Create a reference to the file
-      const clipRef = this.storage.ref(clipPath)
+      this.showAlert = true
+      this.inSubmission = true
+      this.showPercentage = true
+      
+        const task = this.storage.upload(clipPath,this.file)
 
-      task.percentageChanges().subscribe(progress => {
-        this.percentage = progress as number / 100
-      })
+        // Create a reference to the file
+        const clipRef = this.storage.ref(clipPath)
 
-      task.snapshotChanges().pipe(
-        // Ignore values pushed by the observable. 
-        // The snaposhotChanges sends an observable on percentage changes and also when the upload is complete, which is the last
-        //We can set it so that no value will be pushed until the upload is finished
+        task.percentageChanges().subscribe(progress => {
+          this.percentage = progress as number / 100
+        })
 
-        // This observable would be push a snapshot object to subscribe
-        last(),
-        // Switchmap pushes an url object
-        switchMap(() => clipRef.getDownloadURL())
-      ).subscribe({
-        // Define as arrow function to prevent the context from changing
-        // The components properties won't be accessible unless we use an arrow function
-        next: (url) =>{
-          const clip = {
-            // Firebase will annotate uid and display name as string | undefined
-            // However we know they will return a value because the user must be authenticated
-            // Assert the values to strings, so that the createClips method and IClip interface wouldn't have errors
-            uid: this.user?.uid as string,
-            displayName: this.user?.displayName as string,
-            title: this.title.value,
-            fileName: `${clipFileName}.mp4`,
-            url
+        task.snapshotChanges().pipe(
+          // Ignore values pushed by the observable. 
+          // The snaposhotChanges sends an observable on percentage changes and also when the upload is complete, which is the last
+          //We can set it so that no value will be pushed until the upload is finished
+
+          // This observable would be push a snapshot object to subscribe
+          last(),
+          // Switchmap pushes an url object
+          switchMap(() => clipRef.getDownloadURL())
+        ).subscribe({
+          // Define as arrow function to prevent the context from changing
+          // The components properties won't be accessible unless we use an arrow function
+          next: (url) =>{
+            const clip = {
+              // Firebase will annotate uid and display name as string | undefined
+              // However we know they will return a value because the user must be authenticated
+              // Assert the values to strings, so that the createClips method and IClip interface wouldn't have errors
+              uid: this.user?.uid as string,
+              displayName: this.user?.displayName as string,
+              title: this.title.value,
+              fileName: `${clipFileName}.mp4`,
+              url
+            }
+
+            this.clipsService.createClip(clip)
+
+            console.log(clip)
+
+            this.alertColor = "green"
+            this.alertMsg = " Your file was uploaded!"
+            this.showPercentage = false
+          },
+          error: (error) => {
+            this.uploadForm.enable()
+            this.showAlert = true;
+            this.alertMsg = "Uplad failed! Please try again!"
+            this.alertColor = "red"
+            this.showPercentage = false
+            this.inSubmission = false
+            console.error(error);
           }
-
-          this.clipsService.createClip(clip)
-
-          console.log(clip)
-
-          this.alertColor = "green"
-          this.alertMsg = " Your file was uploaded!"
-          this.showPercentage = false
-        },
-        error: (error) => {
-          this.showAlert = true;
-          this.alertMsg = "Uplad failed! Please try again!"
-          this.alertColor = "red"
-          this.showPercentage = false
-          this.inSubmission = false
-          console.error(error);
-        }
-      })
+        })
   }
 
 }
