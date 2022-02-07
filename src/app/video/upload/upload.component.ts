@@ -3,7 +3,9 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 // Inject one of AngularFireStorageModule's services to upload a file
 import { AngularFireStorage } from '@angular/fire/compat/storage';
 import { v4 as uuid } from 'uuid'
-import { last } from 'rxjs/operators';
+import { last, switchMap } from 'rxjs/operators';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
+import firebase from 'firebase/compat/app';
 
 @Component({
   selector: 'app-upload',
@@ -22,6 +24,8 @@ export class UploadComponent implements OnInit {
   percentage = 0
   showPercentage = false
 
+  user: firebase.User | null = null
+
   title = new FormControl('',[
     Validators.required,
     Validators.minLength(3)
@@ -32,8 +36,13 @@ export class UploadComponent implements OnInit {
   })
 
   constructor(
-    private storage:AngularFireStorage
-  ) { }
+    private storage:AngularFireStorage,
+    private auth: AngularFireAuth
+  ) { 
+    // Its possible that the subscribe observable will send a null value instead of an user object. 
+    // However the route guards prevent visitors from accessing this page if they are not authenticated
+    auth.user.subscribe(user => this.user = user)
+  }
 
   ngOnInit(): void {
   }
@@ -78,6 +87,9 @@ export class UploadComponent implements OnInit {
     
       const task = this.storage.upload(clipPath,this.file)
 
+      // Create a reference to the file
+      const clipRef = this.storage.ref(clipPath)
+
       task.percentageChanges().subscribe(progress => {
         this.percentage = progress as number / 100
       })
@@ -86,11 +98,25 @@ export class UploadComponent implements OnInit {
         // Ignore values pushed by the observable. 
         // The snaposhotChanges sends an observable on percentage changes and also when the upload is complete, which is the last
         //We can set it so that no value will be pushed until the upload is finished
-        last()
+
+        // This observable would be push a snapshot object to subscribe
+        last(),
+        // Switchmap pushes an url object
+        switchMap(() => clipRef.getDownloadURL())
       ).subscribe({
         // Define as arrow function to prevent the context from changing
         // The components properties won't be accessible unless we use an arrow function
-        next: (snapshop) =>{
+        next: (url) =>{
+          const clip = {
+            uid: this.user?.uid,
+            displayName: this.user?.displayName,
+            title: this.title.value,
+            fileName: `${clipFileName}.mp4`,
+            url
+          }
+
+          console.log(clip)
+
           this.alertColor = "green"
           this.alertMsg = " Your file was uploaded!"
           this.showPercentage = false
