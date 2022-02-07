@@ -6,6 +6,7 @@ import { v4 as uuid } from 'uuid'
 import { last, switchMap } from 'rxjs/operators';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
+import { ClipService } from 'src/app/services/clip.service';
 
 @Component({
   selector: 'app-upload',
@@ -37,7 +38,8 @@ export class UploadComponent implements OnInit {
 
   constructor(
     private storage:AngularFireStorage,
-    private auth: AngularFireAuth
+    private auth: AngularFireAuth,
+    private clipsService: ClipService
   ) { 
     // Its possible that the subscribe observable will send a null value instead of an user object. 
     // However the route guards prevent visitors from accessing this page if they are not authenticated
@@ -108,12 +110,17 @@ export class UploadComponent implements OnInit {
         // The components properties won't be accessible unless we use an arrow function
         next: (url) =>{
           const clip = {
-            uid: this.user?.uid,
-            displayName: this.user?.displayName,
+            // Firebase will annotate uid and display name as string | undefined
+            // However we know they will return a value because the user must be authenticated
+            // Assert the values to strings, so that the createClips method and IClip interface wouldn't have errors
+            uid: this.user?.uid as string,
+            displayName: this.user?.displayName as string,
             title: this.title.value,
             fileName: `${clipFileName}.mp4`,
             url
           }
+
+          this.clipsService.createClip(clip)
 
           console.log(clip)
 
