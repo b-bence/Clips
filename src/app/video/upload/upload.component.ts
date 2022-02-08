@@ -5,6 +5,7 @@ import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/compat/
 import { v4 as uuid } from 'uuid'
 import { last, switchMap } from 'rxjs/operators';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+// Angular fire package doesn't expose all methods which are present in firebase (e.g.: timestamp)-> import firebase object
 import firebase from 'firebase/compat/app';
 import { ClipService } from 'src/app/services/clip.service';
 import { Router } from '@angular/router';
@@ -132,7 +133,10 @@ export class UploadComponent implements OnDestroy {
           displayName: this.user?.displayName as string,
           title: this.title.value,
           fileName: `${clipFileName}.mp4`,
-          url
+          url,
+          // Firestore object contains methods and properties related to the database service -> Every service in firebase are under an object
+          // Field value property is an object used to generate values for a document. Values generated with this method can be used with the add function
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
         }
 
         const clipDocumentReference = await this.clipsService.createClip(clip)
