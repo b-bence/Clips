@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection,DocumentReference } from '@angular/fire/compat/firestore';
+import { AngularFirestore, AngularFirestoreCollection,DocumentReference,QuerySnapshot } from '@angular/fire/compat/firestore';
 import IClip from '../models/clip.model';
 // The id of the user with the document upload -> user ID can be retrieved with the authentication service
 import { AngularFireAuth } from '@angular/fire/compat/auth'
-import { switchMap } from 'rxjs/operators';
+import { switchMap, map } from 'rxjs/operators';
 import { of } from 'rxjs'
  
 @Injectable({
@@ -42,7 +42,9 @@ export class ClipService {
 
         // Returns a promise
         return query.get()
-      })
+      }),
+      // The value resolved by the promise is a snapshot object
+      map(snapshot => (snapshot as QuerySnapshot<IClip>).docs)
     )
   }
 }
