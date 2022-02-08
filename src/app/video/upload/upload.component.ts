@@ -7,6 +7,7 @@ import { last, switchMap } from 'rxjs/operators';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { ClipService } from 'src/app/services/clip.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-upload',
@@ -41,7 +42,8 @@ export class UploadComponent implements OnDestroy {
   constructor(
     private storage: AngularFireStorage,
     private auth: AngularFireAuth,
-    private clipsService: ClipService
+    private clipsService: ClipService,
+    private router: Router
   ) {
     // Its possible that the subscribe observable will send a null value instead of an user object. 
     // However the route guards prevent visitors from accessing this page if they are not authenticated
@@ -121,7 +123,7 @@ export class UploadComponent implements OnDestroy {
     ).subscribe({
       // Define as arrow function to prevent the context from changing
       // The components properties won't be accessible unless we use an arrow function
-      next: (url) => {
+      next: async (url) => {
         const clip = {
           // Firebase will annotate uid and display name as string | undefined
           // However we know they will return a value because the user must be authenticated
@@ -133,13 +135,21 @@ export class UploadComponent implements OnDestroy {
           url
         }
 
-        this.clipsService.createClip(clip)
+        const clipDocumentReference = await this.clipsService.createClip(clip)
 
         console.log(clip)
 
         this.alertColor = "green"
         this.alertMsg = " Your file was uploaded!"
         this.showPercentage = false
+
+        // Success message appears after upload. Let the user see that message for a while
+        setTimeout(() => {
+          // The navigate function assumes that the path is absolute
+          this.router.navigate([
+            'clip',clipDocumentReference.id
+          ])
+        },1000)
       },
       error: (error) => {
         this.uploadForm.enable()

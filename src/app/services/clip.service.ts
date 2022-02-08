@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/compat/firestore';
+import { AngularFirestore, AngularFirestoreCollection,DocumentReference } from '@angular/fire/compat/firestore';
 import IClip from '../models/clip.model';
 
 @Injectable({
@@ -14,8 +14,9 @@ export class ClipService {
     this.clipsCollection = db.collection('clips')
   }
 
-  async createClip(data:IClip) {
+  createClip(data:IClip):Promise<DocumentReference<IClip>> {
     // Add will create an id for us automatically
-    await this.clipsCollection.add(data)
+    // Returns a promise which will resolve to a document. It contains an id that the upload component can use
+    return this.clipsCollection.add(data)
   }
 }
