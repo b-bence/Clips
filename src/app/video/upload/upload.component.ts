@@ -60,7 +60,11 @@ export class UploadComponent implements OnInit {
     // We could extend and add undefined too, but the nullish coalescing operator can be a good solution too
     // In case the value is File or null, it will return that (left side of the operator), 
     // but if its undefined the the right side of the operator will be returned
-    this.file = ($event as DragEvent).dataTransfer?.files.item(0) ?? null
+    this.file = ($event as DragEvent).dataTransfer ?
+      // in case the event is drag and drop
+      ($event as DragEvent).dataTransfer?.files.item(0) ?? null: 
+      // Checking in case the event is something else, e.g.: using the upload button
+      ($event.target as HTMLInputElement).files?.item(0) ?? null
 
 
     if (!this.file || this.file.type !== 'video/mp4'){
