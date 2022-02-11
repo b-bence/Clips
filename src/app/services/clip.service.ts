@@ -47,4 +47,12 @@ export class ClipService {
       map(snapshot => (snapshot as QuerySnapshot<IClip>).docs)
     )
   }
+
+  updateClip(id: string, title: string){
+    // Update only changes properties that we provide. Additional properties can be added too. 
+    // Returns a promise -> return the promise to let components to handle the response
+    return this.clipsCollection.doc(id).update({
+      title
+    })
+  }
 }

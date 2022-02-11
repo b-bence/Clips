@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Params, ActivatedRoute, Router } from '@angular/router';
 import { ClipService } from 'src/app/services/clip.service';
 import IClip from 'src/app/models/clip.model';
+import { ModalService } from 'src/app/services/modal.service';
 
 @Component({
   selector: 'app-manage',
@@ -12,11 +13,13 @@ export class ManageComponent implements OnInit {
   // 2 means ascending, 1 means descening order
   videoOrder = '1'
   clips:IClip[] = []
+  activeClip: IClip | null = null
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private clipService: ClipService
+    private clipService: ClipService,
+    private modal: ModalService
   ) { }
 
   ngOnInit(): void {
@@ -48,6 +51,25 @@ export class ManageComponent implements OnInit {
       relativeTo: this.route,
       queryParams: {
         sort: value
+      }
+    })
+  }
+
+  openModal($event: Event, clip: IClip){
+    $event.preventDefault()
+
+    // Has to create a deep copy. Otherwise changes on the active clip (eg on title edit) will be reflected on the original object as well
+    this.activeClip = JSON.parse(JSON.stringify(clip))
+
+    this.modal.toggleModal("editClip")
+  }
+
+  // The event object will not contain the typical event data. 
+  // Data stored here will be the data emitted by the child component -> Annotate it with the IClip model
+  update($event: IClip){
+    this.clips.forEach((element,index) => {
+      if (element.docID == $event.docID){
+        this.clips[index].title = $event.title
       }
     })
   }
