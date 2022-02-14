@@ -5,6 +5,7 @@ import IClip from '../models/clip.model';
 import { AngularFireAuth } from '@angular/fire/compat/auth'
 import { switchMap, map } from 'rxjs/operators';
 import { of } from 'rxjs'
+import { AngularFireStorage } from '@angular/fire/compat/storage'
  
 @Injectable({
   providedIn: 'root'
@@ -14,7 +15,8 @@ export class ClipService {
 
   constructor(
     private db: AngularFirestore,
-    private auth: AngularFireAuth
+    private auth: AngularFireAuth,
+    private storage: AngularFireStorage
   ) { 
     this.clipsCollection = db.collection('clips')
   }
@@ -54,5 +56,18 @@ export class ClipService {
     return this.clipsCollection.doc(id).update({
       title
     })
+  }
+
+  async deleteClip(clip: IClip){
+    // Clips have to be deleted from both firebase storage and firebase database
+
+    // the ref function accepts a path to the file -> we use the directory called clips
+    const clipReference = this.storage.ref(`clips/${clip.fileName}`)
+
+    // Will delete the file from the storage
+    // Important: we have to write rules in firebase to be able to delete files
+    await clipReference.delete()
+
+    await this.clipsCollection.doc(clip.docID).delete()
   }
 }
