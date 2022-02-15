@@ -4,7 +4,8 @@ import IClip from '../models/clip.model';
 // The id of the user with the document upload -> user ID can be retrieved with the authentication service
 import { AngularFireAuth } from '@angular/fire/compat/auth'
 import { switchMap, map } from 'rxjs/operators';
-import { of } from 'rxjs'
+// Combine latest: subscribe to multiple observables at the same time
+import { of, BehaviorSubject, combineLatest } from 'rxjs'
 import { AngularFireStorage } from '@angular/fire/compat/storage'
  
 @Injectable({
@@ -27,10 +28,19 @@ export class ClipService {
     return this.clipsCollection.add(data)
   }
 
-  getUserClips(){
-    return this.auth.user.pipe(
-      // Swithc map requires an observable to be returned
-      switchMap(user => {
+  getUserClips(sort$: BehaviorSubject<string>){
+    return combineLatest([
+        this.auth.user,
+        // The observable here should subscribe to the behavior subject observable we created in the manage component
+        // When the sort order is changed (new value is pushed to the subscriber) a new request will be sent, and the result will be returned -> the pipeline will handle the new value
+        sort$
+      ]).pipe(
+      // Switch map requires an observable to be returned
+      switchMap(values => {
+        // Values will be pushed to an array in the order they are presented in combineLatest
+        // First observable: user -> value pushed in the array will be from the user observable
+        // Second: sort -> value from sort observable
+        const [user, sort] = values
         if (!user){
           return of([])
         }
@@ -40,6 +50,11 @@ export class ClipService {
         // Where: filter the documents
         const query = this.clipsCollection.ref.where(
           'uid','==',user.uid
+        ).orderBy(
+          // Could be anything
+          'timestamp',
+          // Updated in manage component
+          sort === '1' ? 'desc': 'asc'
         )
 
         // Returns a promise

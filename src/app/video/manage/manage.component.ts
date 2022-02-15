@@ -3,6 +3,11 @@ import { Params, ActivatedRoute, Router } from '@angular/router';
 import { ClipService } from 'src/app/services/clip.service';
 import IClip from 'src/app/models/clip.model';
 import { ModalService } from 'src/app/services/modal.service';
+// Can create objects that acts as an observer and observable at the same time
+// Normally we can subscribe to observables to wait for values pushed by the observer
+// Subscribers cant force the observable to push a new value → Behavior subjects can do this
+// It can push a value, while being subscribed to an observable
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-manage',
@@ -14,13 +19,18 @@ export class ManageComponent implements OnInit {
   videoOrder = '1'
   clips:IClip[] = []
   activeClip: IClip | null = null
+  // $ is used as a practice to identify observables
+  // BehaviorSubject must specify the type of value pushed by the observable. Will omit values whenever the sorting value changes
+  sort$: BehaviorSubject<string>
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private clipService: ClipService,
     private modal: ModalService
-  ) { }
+  ) { 
+    this.sort$ = new BehaviorSubject(this.videoOrder)
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params:Params) => {
@@ -28,8 +38,11 @@ export class ManageComponent implements OnInit {
       // We don't have to unsubscribe from this observable because Angular will complete it when the component is destroyed
       // It is destroyed when the user navigates to a different page
 
+      // Have to push the sort order to the obserable, otherwise it would push the same value -> orderBy in clip service will use it
+      this.sort$.next(this.videoOrder)
+
     })
-    this.clipService.getUserClips().subscribe(docs => {
+    this.clipService.getUserClips(this.sort$).subscribe(docs => {
       // The observable always pushes a fresh list of documents
       this.clips = []
 
