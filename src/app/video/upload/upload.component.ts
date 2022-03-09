@@ -60,7 +60,7 @@ export class UploadComponent implements OnDestroy {
     this.task?.cancel()
   }
 
-  storeFile($event: Event) {
+  async storeFile($event: Event) {
     this.isDragover = false
 
     // To be able to log files which are dropped in Chrome we have to do an extra step
@@ -81,6 +81,8 @@ export class UploadComponent implements OnDestroy {
     if (!this.file || this.file.type !== 'video/mp4') {
       return
     }
+
+    await this.ffmpegService.getScreenshots(this.file)
 
     this.title.setValue(
       // removes the file extension from the string
