@@ -2,8 +2,16 @@
     <section class="container mx-auto my-8 bg-secondary p-6">
       <div class="rounded relative flex flex-col">
         <div class="font-bold mb-6">Upload Video</div>
-  
-        <!-- Upload Dropbox -->
+
+        <ng-container>
+          <span *ngIf="!ffmpegService.isReady; else uploadEditorContainer"
+            class="material-icons text-center text-6xl p-8 animate-spin">
+            settings
+          </span>
+        </ng-container>
+
+        <ng-template #uploadEditorContainer>
+                  <!-- Upload Dropbox -->
         <ng-container *ngIf="!showUploadForm; else uploadFormContainer">
           <div  
             app-event-blocker
@@ -67,5 +75,8 @@
             </div>
           </form>
         </ng-template>
+        </ng-template>
+  
+
       </div>
     </section>

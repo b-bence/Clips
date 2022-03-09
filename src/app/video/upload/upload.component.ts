@@ -9,6 +9,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { ClipService } from 'src/app/services/clip.service';
 import { Router } from '@angular/router';
+import { FfmpegService } from 'src/app/services/ffmpeg.service';
 
 @Component({
   selector: 'app-upload',
@@ -44,11 +45,13 @@ export class UploadComponent implements OnDestroy {
     private storage: AngularFireStorage,
     private auth: AngularFireAuth,
     private clipsService: ClipService,
-    private router: Router
+    private router: Router,
+    public ffmpegService: FfmpegService
   ) {
     // Its possible that the subscribe observable will send a null value instead of an user object. 
     // However the route guards prevent visitors from accessing this page if they are not authenticated
     auth.user.subscribe(user => this.user = user)
+    this.ffmpegService.init()
   }
 
   ngOnDestroy(): void {
