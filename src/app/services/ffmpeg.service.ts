@@ -38,6 +38,8 @@ async getScreenshots(file: File){
   const commands: string[] = []
 
   seconds.forEach((second) => {
+
+    // Browsers cant display an image with binary data. We must set an image tag's src attribute to an url -> need to convert a screenshot from a binary array to a string (urls to the images)
     commands.push(
     // Run command is added by default at the beginning
 
@@ -64,6 +66,28 @@ async getScreenshots(file: File){
   await this.ffmpeg.run(
     ...commands
   )
-}
 
+  const screenshots: string[] = []
+
+  seconds.forEach(second => {
+    // The files are stored in the File System
+    const sceenshotFile = this.ffmpeg.FS(
+      'readFile', `output_0${second}.png`)
+
+    const screenshotBlob = new Blob(
+      [sceenshotFile.buffer],{
+        type: 'image/png'
+      }
+    )
+    // We need to convert the blob to an url. JS can create url-s from objects
+    // Blob type is an object -> can create a URL from it
+
+    const screenshotURL = URL.createObjectURL(screenshotBlob)
+
+    screenshots.push(screenshotURL)
+
+  })
+
+  return screenshots
+  }
 }
