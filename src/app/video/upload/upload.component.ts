@@ -63,6 +63,12 @@ export class UploadComponent implements OnDestroy {
   }
 
   async storeFile($event: Event) {
+
+    // Only allow to process one file at a time
+    if (this.ffmpegService.isRunning){
+      return
+    }
+
     this.isDragover = false
 
     // To be able to log files which are dropped in Chrome we have to do an extra step
