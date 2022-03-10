@@ -32,6 +32,8 @@ export class UploadComponent implements OnDestroy {
 
   task?: AngularFireUploadTask
 
+  screenshots: string[] = []
+
   title = new FormControl('', [
     Validators.required,
     Validators.minLength(3)
@@ -82,8 +84,8 @@ export class UploadComponent implements OnDestroy {
       return
     }
 
-    await this.ffmpegService.getScreenshots(this.file)
-
+    this.screenshots = await this.ffmpegService.getScreenshots(this.file)
+    // Hyperlinks and image sources are sanitized by Angular. If it doesn't trust the url -> prefix with unsafe -> browser throws an error
     this.title.setValue(
       // removes the file extension from the string
       this.file.name.replace(/\.[^/.]+$/, "")
