@@ -10,6 +10,7 @@ import firebase from 'firebase/compat/app';
 import { ClipService } from 'src/app/services/clip.service';
 import { Router } from '@angular/router';
 import { FfmpegService } from 'src/app/services/ffmpeg.service';
+import { combineLatest } from 'rxjs';
 
 @Component({
   selector: 'app-upload',
@@ -134,8 +135,22 @@ export class UploadComponent implements OnDestroy {
     // The value retuned by this will be helpful to give updates about the status of the upload
     this.screenshotTask = this.storage.upload(screenshotPath, screenshotBlob)
 
-    this.task.percentageChanges().subscribe(progress => {
-      this.percentage = progress as number / 100
+    // PercentageChages pushes a number value. The subscription needs to be applied to both the clip and screenshot uploads
+    // Instead of creating multiple subscriptions we can use a single on with the combineLatest operator
+    // It subscribes to multiple observables and stream it as one value. If one observables pushes a value, the operator will push the latest value from all observables
+    combineLatest([
+      // Order matters
+      this.task.percentageChanges(),
+      this.screenshotTask.percentageChanges()
+    ]).subscribe((progress) => {
+      // Progress will the store values from both observables -> should destructure
+      const [clipProgress, screenshotProgress] = progress
+
+      if (!clipProgress || !screenshotProgress){
+        return
+      }
+      const total = clipProgress + screenshotProgress
+      this.percentage = total as number / 200
     })
 
     this.task.snapshotChanges().pipe(
