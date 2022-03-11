@@ -34,6 +34,7 @@ export class UploadComponent implements OnDestroy {
 
   screenshots: string[] = []
   selectedScreenshot = ''
+  screenshotTask?: AngularFireUploadTask
 
   title = new FormControl('', [
     Validators.required,
@@ -105,9 +106,13 @@ export class UploadComponent implements OnDestroy {
     this.showUploadForm = true
   }
 
-  uploadFile() {
+  async uploadFile() {
     const clipFileName = uuid()
     const clipPath = `clips/${clipFileName}.mp4`
+
+    const screenshotBlob = await this.ffmpegService.blobFromURL(this.selectedScreenshot)
+    // Path to firebase
+    const screenshotPath = `screenshots/${clipFileName}.png`
 
     // Preventing users from editing forms during upload
     // Alternative to binding the disabled attribute
@@ -125,6 +130,9 @@ export class UploadComponent implements OnDestroy {
 
     // Create a reference to the file
     const clipRef = this.storage.ref(clipPath)
+
+    // The value retuned by this will be helpful to give updates about the status of the upload
+    this.screenshotTask = this.storage.upload(screenshotPath, screenshotBlob)
 
     this.task.percentageChanges().subscribe(progress => {
       this.percentage = progress as number / 100

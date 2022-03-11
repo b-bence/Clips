@@ -95,4 +95,19 @@ async getScreenshots(file: File){
 
   return screenshots
   }
+
+  // Will provide a blob to firebase
+  // A blob is a wrapper around a file's binary data
+  // We need to convert the url to blob. The urls created by our app are blob urls, which point to our system memory
+
+  // The component does not have access to the blob object itself, will only get the url
+  async blobFromURL(url: string){
+    // Normally we would run the fetch function with API urls.
+    // It also works if we want to fetch a file from a blob. Modern browsers will understand that the file is from the users memory
+    const response = await fetch(url)
+    // fetch returns a response object -> contains information about the response and headers -> only need the information
+    const blob = await response.blob()
+
+    return blob
+  }
 }
