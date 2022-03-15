@@ -3,14 +3,14 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 // Inject one of AngularFireStorageModule's services to upload a file
 import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/compat/storage';
 import { v4 as uuid } from 'uuid'
-import { last, switchMap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 // Angular fire package doesn't expose all methods which are present in firebase (e.g.: timestamp)-> import firebase object
 import firebase from 'firebase/compat/app';
 import { ClipService } from 'src/app/services/clip.service';
 import { Router } from '@angular/router';
 import { FfmpegService } from 'src/app/services/ffmpeg.service';
-import { combineLatest } from 'rxjs';
+import { combineLatest, forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-upload',
@@ -129,8 +129,9 @@ export class UploadComponent implements OnDestroy {
 
     this.task = this.storage.upload(clipPath, this.file)
 
-    // Create a reference to the file
+    // Create a reference to the file - Firebase reference
     const clipRef = this.storage.ref(clipPath)
+    const screenshotRef = this.storage.ref(screenshotPath)
 
     // The value retuned by this will be helpful to give updates about the status of the upload
     this.screenshotTask = this.storage.upload(screenshotPath, screenshotBlob)
@@ -153,19 +154,25 @@ export class UploadComponent implements OnDestroy {
       this.percentage = total as number / 200
     })
 
-    this.task.snapshotChanges().pipe(
+    forkJoin([
+      // By passing 2 observables, we're waiting for both upload to finish
+      this.task.snapshotChanges(),
+      this.screenshotTask.snapshotChanges()
+    ]).pipe(
       // Ignore values pushed by the observable. 
       // The snaposhotChanges sends an observable on percentage changes and also when the upload is complete, which is the last
       //We can set it so that no value will be pushed until the upload is finished
 
-      // This observable would be push a snapshot object to subscribe
-      last(),
       // Switchmap pushes an url object
-      switchMap(() => clipRef.getDownloadURL())
+      switchMap(() => forkJoin([
+        clipRef.getDownloadURL(),
+        screenshotRef.getDownloadURL()
+      ]))
     ).subscribe({
       // Define as arrow function to prevent the context from changing
       // The components properties won't be accessible unless we use an arrow function
-      next: async (url) => {
+      next: async (urls) => {
+        const [clipURL, screenshotURL] = urls
         const clip = {
           // Firebase will annotate uid and display name as string | undefined
           // However we know they will return a value because the user must be authenticated
@@ -174,7 +181,8 @@ export class UploadComponent implements OnDestroy {
           displayName: this.user?.displayName as string,
           title: this.title.value,
           fileName: `${clipFileName}.mp4`,
-          url,
+          url:clipURL,
+          screenshotURL,
           // Firestore object contains methods and properties related to the database service -> Every service in firebase are under an object
           // Field value property is an object used to generate values for a document. Values generated with this method can be used with the add function
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
