@@ -3,7 +3,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": [],
+    "types": [
+      // Ffmpeg runs in node
+      // TS assumes all code will run in the browser. If it detects code for node, it'll throw an errorr
+      // configure typescript to import ffmpeg definitions and expect code from node.js -> npm install @types/node
+      // TS will understand ffmpeg variables, functions, objects used by ffmpeg package
+      "node"
+    ],
     "noPropertyAccessFromIndexSignature": false
   },
   "files": [

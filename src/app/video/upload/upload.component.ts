@@ -3,12 +3,14 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 // Inject one of AngularFireStorageModule's services to upload a file
 import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/compat/storage';
 import { v4 as uuid } from 'uuid'
-import { last, switchMap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 // Angular fire package doesn't expose all methods which are present in firebase (e.g.: timestamp)-> import firebase object
 import firebase from 'firebase/compat/app';
 import { ClipService } from 'src/app/services/clip.service';
 import { Router } from '@angular/router';
+import { FfmpegService } from 'src/app/services/ffmpeg.service';
+import { combineLatest, forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-upload',
@@ -31,6 +33,10 @@ export class UploadComponent implements OnDestroy {
 
   task?: AngularFireUploadTask
 
+  screenshots: string[] = []
+  selectedScreenshot = ''
+  screenshotTask?: AngularFireUploadTask
+
   title = new FormControl('', [
     Validators.required,
     Validators.minLength(3)
@@ -44,11 +50,13 @@ export class UploadComponent implements OnDestroy {
     private storage: AngularFireStorage,
     private auth: AngularFireAuth,
     private clipsService: ClipService,
-    private router: Router
+    private router: Router,
+    public ffmpegService: FfmpegService
   ) {
     // Its possible that the subscribe observable will send a null value instead of an user object. 
     // However the route guards prevent visitors from accessing this page if they are not authenticated
     auth.user.subscribe(user => this.user = user)
+    this.ffmpegService.init()
   }
 
   ngOnDestroy(): void {
@@ -57,7 +65,13 @@ export class UploadComponent implements OnDestroy {
     this.task?.cancel()
   }
 
-  storeFile($event: Event) {
+  async storeFile($event: Event) {
+
+    // Only allow to process one file at a time
+    if (this.ffmpegService.isRunning){
+      return
+    }
+
     this.isDragover = false
 
     // To be able to log files which are dropped in Chrome we have to do an extra step
@@ -79,6 +93,12 @@ export class UploadComponent implements OnDestroy {
       return
     }
 
+    this.screenshots = await this.ffmpegService.getScreenshots(this.file)
+
+    // Add image highlight to selected screenshot
+    this.selectedScreenshot = this.screenshots[0]
+
+    // Hyperlinks and image sources are sanitized by Angular. If it doesn't trust the url -> prefix with unsafe -> browser throws an error
     this.title.setValue(
       // removes the file extension from the string
       this.file.name.replace(/\.[^/.]+$/, "")
@@ -87,9 +107,13 @@ export class UploadComponent implements OnDestroy {
     this.showUploadForm = true
   }
 
-  uploadFile() {
+  async uploadFile() {
     const clipFileName = uuid()
     const clipPath = `clips/${clipFileName}.mp4`
+
+    const screenshotBlob = await this.ffmpegService.blobFromURL(this.selectedScreenshot)
+    // Path to firebase
+    const screenshotPath = `screenshots/${clipFileName}.png`
 
     // Preventing users from editing forms during upload
     // Alternative to binding the disabled attribute
@@ -105,26 +129,50 @@ export class UploadComponent implements OnDestroy {
 
     this.task = this.storage.upload(clipPath, this.file)
 
-    // Create a reference to the file
+    // Create a reference to the file - Firebase reference
     const clipRef = this.storage.ref(clipPath)
+    const screenshotRef = this.storage.ref(screenshotPath)
 
-    this.task.percentageChanges().subscribe(progress => {
-      this.percentage = progress as number / 100
+    // The value retuned by this will be helpful to give updates about the status of the upload
+    this.screenshotTask = this.storage.upload(screenshotPath, screenshotBlob)
+
+    // PercentageChages pushes a number value. The subscription needs to be applied to both the clip and screenshot uploads
+    // Instead of creating multiple subscriptions we can use a single on with the combineLatest operator
+    // It subscribes to multiple observables and stream it as one value. If one observables pushes a value, the operator will push the latest value from all observables
+    combineLatest([
+      // Order matters
+      this.task.percentageChanges(),
+      this.screenshotTask.percentageChanges()
+    ]).subscribe((progress) => {
+      // Progress will the store values from both observables -> should destructure
+      const [clipProgress, screenshotProgress] = progress
+
+      if (!clipProgress || !screenshotProgress){
+        return
+      }
+      const total = clipProgress + screenshotProgress
+      this.percentage = total as number / 200
     })
 
-    this.task.snapshotChanges().pipe(
+    forkJoin([
+      // By passing 2 observables, we're waiting for both upload to finish
+      this.task.snapshotChanges(),
+      this.screenshotTask.snapshotChanges()
+    ]).pipe(
       // Ignore values pushed by the observable. 
       // The snaposhotChanges sends an observable on percentage changes and also when the upload is complete, which is the last
       //We can set it so that no value will be pushed until the upload is finished
 
-      // This observable would be push a snapshot object to subscribe
-      last(),
       // Switchmap pushes an url object
-      switchMap(() => clipRef.getDownloadURL())
+      switchMap(() => forkJoin([
+        clipRef.getDownloadURL(),
+        screenshotRef.getDownloadURL()
+      ]))
     ).subscribe({
       // Define as arrow function to prevent the context from changing
       // The components properties won't be accessible unless we use an arrow function
-      next: async (url) => {
+      next: async (urls) => {
+        const [clipURL, screenshotURL] = urls
         const clip = {
           // Firebase will annotate uid and display name as string | undefined
           // However we know they will return a value because the user must be authenticated
@@ -133,7 +181,9 @@ export class UploadComponent implements OnDestroy {
           displayName: this.user?.displayName as string,
           title: this.title.value,
           fileName: `${clipFileName}.mp4`,
-          url,
+          url:clipURL,
+          screenshotURL,
+          screenshotFileName: `${clipFileName}.png`,
           // Firestore object contains methods and properties related to the database service -> Every service in firebase are under an object
           // Field value property is an object used to generate values for a document. Values generated with this method can be used with the add function
           timestamp: firebase.firestore.FieldValue.serverTimestamp()

@@ -78,10 +78,12 @@ export class ClipService {
 
     // the ref function accepts a path to the file -> we use the directory called clips
     const clipReference = this.storage.ref(`clips/${clip.fileName}`)
+    const screenshotReference = this.storage.ref(`screenshots/${clip.screenshotFileName}`)
 
     // Will delete the file from the storage
     // Important: we have to write rules in firebase to be able to delete files
     await clipReference.delete()
+    await screenshotReference.delete()
 
     await this.clipsCollection.doc(clip.docID).delete()
   }
