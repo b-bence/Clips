@@ -183,6 +183,7 @@ export class UploadComponent implements OnDestroy {
           fileName: `${clipFileName}.mp4`,
           url:clipURL,
           screenshotURL,
+          screenshotFileName: `${clipFileName}.png`,
           // Firestore object contains methods and properties related to the database service -> Every service in firebase are under an object
           // Field value property is an object used to generate values for a document. Values generated with this method can be used with the add function
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
