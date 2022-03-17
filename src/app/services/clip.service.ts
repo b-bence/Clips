@@ -5,14 +5,18 @@ import IClip from '../models/clip.model';
 import { AngularFireAuth } from '@angular/fire/compat/auth'
 import { switchMap, map } from 'rxjs/operators';
 // Combine latest: subscribe to multiple observables at the same time
-import { of, BehaviorSubject, combineLatest } from 'rxjs'
+import { of, BehaviorSubject, combineLatest, firstValueFrom } from 'rxjs'
 import { AngularFireStorage } from '@angular/fire/compat/storage'
+import { ThrowStmt } from '@angular/compiler';
  
 @Injectable({
   providedIn: 'root'
 })
 export class ClipService {
   public clipsCollection: AngularFirestoreCollection<IClip>
+  // Store the clips and grab the last document to prevent firebase from querying the same document
+  pageClips: IClip[] = []
+  pendingReq = false
 
   constructor(
     private db: AngularFirestore,
@@ -86,5 +90,42 @@ export class ClipService {
     await screenshotReference.delete()
 
     await this.clipsCollection.doc(clip.docID).delete()
+  }
+
+  async getClips(){
+    if (this.pendingReq){
+      return
+    }
+
+    this.pendingReq = true
+    // References store methods for performing queryies
+    let query = this.clipsCollection.ref.orderBy(
+      'timestamp', 'desc'
+      ).limit(6)
+
+    const { length } = this.pageClips
+
+    if (length){
+      const lastDocID = this.pageClips[length-1].docID
+      const lastDoc = await firstValueFrom(this.clipsCollection.doc(lastDocID)
+        // Returns an obversable (normally its a promise) - Used toPromise() to get a promise, but that is deprecated -> use firstValueFrom() instead
+        .get())
+      
+      query = query.startAfter(lastDoc)
+    }
+
+    // Snapshot contains document data 
+    const snapshot = await query.get()
+
+    // Trim the snapshot reponse to the document data
+    snapshot.forEach(doc => {
+      this.pageClips.push({
+        docID: doc.id,
+        // Push the documents data by calling data()
+        ...doc.data()
+      })
+    })
+
+    this.pendingReq = false
   }
 }
