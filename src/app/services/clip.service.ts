@@ -7,12 +7,12 @@ import { switchMap, map } from 'rxjs/operators';
 // Combine latest: subscribe to multiple observables at the same time
 import { of, BehaviorSubject, combineLatest, firstValueFrom } from 'rxjs'
 import { AngularFireStorage } from '@angular/fire/compat/storage'
-import { ThrowStmt } from '@angular/compiler';
+import { Resolve, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
  
 @Injectable({
   providedIn: 'root'
 })
-export class ClipService {
+export class ClipService implements Resolve<IClip | null>{
   public clipsCollection: AngularFirestoreCollection<IClip>
   // Store the clips and grab the last document to prevent firebase from querying the same document
   pageClips: IClip[] = []
@@ -21,7 +21,8 @@ export class ClipService {
   constructor(
     private db: AngularFirestore,
     private auth: AngularFireAuth,
-    private storage: AngularFireStorage
+    private storage: AngularFireStorage,
+    private router: Router
   ) { 
     this.clipsCollection = db.collection('clips')
   }
@@ -127,5 +128,26 @@ export class ClipService {
     })
 
     this.pendingReq = false
+  }
+
+  // Generally a resolver is a function for retrieving data for a page component. The router will run this function before loading the component
+  // Route: info about the current route being visited -> can access the route parameters
+  // State: store the current representation of the route in a tree
+  resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    // Goal of the resolver is to grab a clip from the clips collections
+    return this.clipsCollection.doc(route.params.id)
+    .get()
+    .pipe(
+      map(snapshot => {
+        const data = snapshot.data()
+
+        if (!data) {
+          this.router.navigate(['/'])
+          return null
+        }
+
+        return data
+      })
+    )
   }
 }
